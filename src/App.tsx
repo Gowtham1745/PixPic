@@ -358,7 +358,16 @@ function App() {
 
           {error && (
             <div className="error-banner" role="alert">
-              <div><CircleHelp size={18} /><p>{error}</p></div>
+              <div>
+                <CircleHelp size={18} />
+                <div>
+                  <p>{error}</p>
+                  <a className="text-link" href="https://huggingface.co/spaces/gokaygokay/AuraSR" target="_blank" rel="noreferrer">
+                    Try the free Hugging Face upscaler <ArrowUpRight size={14} />
+                  </a>
+                  <small className="error-privacy-note">This opens a third-party demo. Images you upload there are sent to that service.</small>
+                </div>
+              </div>
               {selected && !processing && <button type="button" onClick={() => void runEnhancement()}><RefreshCw size={14} /> Try again</button>}
               <button className="error-dismiss" type="button" aria-label="Dismiss message" onClick={() => setError(null)}><X size={16} /></button>
             </div>
