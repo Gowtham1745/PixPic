@@ -1,0 +1,4 @@
+-r requirements.txt
+numpy>=1.24,<2
+basicsr==1.4.2
+realesrgan==0.3.0
