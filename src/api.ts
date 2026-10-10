@@ -118,22 +118,78 @@ function base64ToBlob(dataUrl: string): Blob {
   return new Blob([bytes], { type: mime });
 }
 
+function canvasToImage(canvas: HTMLCanvasElement): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('Could not prepare an image tile for AI processing.'));
+    image.src = canvas.toDataURL('image/png');
+  });
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob);
+      else reject(new Error('Could not export the enhanced image.'));
+    }, 'image/png');
+  });
+}
+
 async function enhanceInBrowser(file: File, scale: number): Promise<EnhancementResult> {
   const [upscaler, image] = await Promise.all([getBrowserUpscaler(scale), fileToImage(file)]);
-  let output: string;
+  // Process bounded overlapping tiles instead of sending a huge source image into one
+  // model call. This avoids TensorFlow/browser maximum-size errors on large photos.
+  const tileSize = 512;
+  const overlap = 16;
+  const outputCanvas = document.createElement('canvas');
+  outputCanvas.width = image.naturalWidth * scale;
+  outputCanvas.height = image.naturalHeight * scale;
+  const context = outputCanvas.getContext('2d');
+  if (!context) throw new Error('Your browser could not create the output canvas.');
+
   try {
-    output = await upscaler.upscale(image, { output: 'base64', patchSize: 64, padding: 2 });
+    for (let y = 0; y < image.naturalHeight; y += tileSize) {
+      for (let x = 0; x < image.naturalWidth; x += tileSize) {
+        const coreWidth = Math.min(tileSize, image.naturalWidth - x);
+        const coreHeight = Math.min(tileSize, image.naturalHeight - y);
+        const left = Math.max(0, x - overlap);
+        const top = Math.max(0, y - overlap);
+        const right = Math.min(image.naturalWidth, x + coreWidth + overlap);
+        const bottom = Math.min(image.naturalHeight, y + coreHeight + overlap);
+        const tileCanvas = document.createElement('canvas');
+        tileCanvas.width = right - left;
+        tileCanvas.height = bottom - top;
+        const tileContext = tileCanvas.getContext('2d');
+        if (!tileContext) throw new Error('Your browser could not prepare an image tile.');
+        tileContext.drawImage(image, left, top, tileCanvas.width, tileCanvas.height, 0, 0, tileCanvas.width, tileCanvas.height);
+        const tileImage = await canvasToImage(tileCanvas);
+        const output = await upscaler.upscale(tileImage, { output: 'base64', patchSize: 64, padding: 2 });
+        if (typeof output !== 'string') throw new Error('The AI model returned an unexpected result.');
+        const tileBlob = base64ToBlob(output);
+        const enhancedTile = await createImageBitmap(tileBlob);
+        const sourceX = (x - left) * scale;
+        const sourceY = (y - top) * scale;
+        context.drawImage(
+          enhancedTile,
+          sourceX, sourceY, coreWidth * scale, coreHeight * scale,
+          x * scale, y * scale, coreWidth * scale, coreHeight * scale,
+        );
+        enhancedTile.close();
+        tileImage.src = '';
+        tileCanvas.width = 0;
+        tileCanvas.height = 0;
+      }
+    }
+    const blob = await canvasToBlob(outputCanvas);
+    return { image: blob, width: outputCanvas.width, height: outputCanvas.height };
   } catch (error) {
     const detail = error instanceof Error ? error.message : 'Unknown model error';
-    throw new Error(`Browser AI enhancement failed: ${detail}. Try a smaller image or use 2×.`);
+    throw new Error(`Browser AI enhancement failed: ${detail}. Try 2× or a smaller image if your device runs out of memory.`);
+  } finally {
+    outputCanvas.width = 0;
+    outputCanvas.height = 0;
   }
-  if (typeof output !== 'string') throw new Error('The AI model returned an unexpected result.');
-  const blob = base64ToBlob(output);
-  const resultImage = await createImageBitmap(blob);
-  const width = resultImage.width;
-  const height = resultImage.height;
-  resultImage.close();
-  return { image: blob, width, height };
 }
 
 export async function getBackendHealth(): Promise<BackendHealth> {
