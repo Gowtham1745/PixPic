@@ -125,12 +125,14 @@ function App() {
     ? backend?.models[`photo_${scale}x`]?.ready ?? false
     : backend?.models.illustration_4x?.ready ?? false;
   const backendStatus = !healthChecked
-    ? 'Checking AI service'
-    : backend?.inference_available
-      ? 'AI service ready'
-      : backend
-        ? 'Model setup needed'
-        : 'AI service offline';
+    ? 'Preparing AI options'
+    : backend?.status === 'browser'
+      ? 'Browser AI ready'
+      : backend?.inference_available
+        ? 'AI service ready'
+        : backend
+          ? 'Model setup needed'
+          : 'AI service offline';
 
   async function acceptFile(file?: File) {
     if (!file) return;
@@ -251,7 +253,7 @@ function App() {
             </div>
             <div className={`service-state${backend?.inference_available ? ' service-state--ready' : ''}`} aria-live="polite">
               <span className="service-indicator" /> {backendStatus}
-              <span className="service-hint" title={modelReady ? 'The selected model and its weights are available.' : 'Image enhancement needs a running backend with the selected Real-ESRGAN model weights.'}><CircleHelp size={14} /></span>
+              <span className="service-hint" title={backend?.status === 'browser' ? 'Free ESRGAN model runs locally in your browser after downloading from the public CDN.' : modelReady ? 'The selected model and its weights are available.' : 'Image enhancement needs a running backend with the selected Real-ESRGAN model weights.'}><CircleHelp size={14} /></span>
             </div>
           </div>
 
@@ -296,7 +298,7 @@ function App() {
                   <button className="replace-link" type="button" onClick={() => fileInput.current?.click()}>Replace image <ArrowUpRight size={14} /></button>
                 </div>
               )}
-              <div className="privacy-note"><ShieldCheck size={15} /> Images are sent to the configured AI backend only when you select Enhance.</div>
+              <div className="privacy-note"><ShieldCheck size={15} /> {backend?.status === 'browser' ? 'Images stay on your device; AI inference runs in your browser.' : 'Images are sent to the configured AI backend only when you select Enhance.'}</div>
             </div>
 
             <div className="workspace-panel settings-panel">
@@ -307,11 +309,11 @@ function App() {
               <div className="select-wrap">
                 <select id="mode-select" value={mode} onChange={(event) => setEnhancementMode(event.target.value as EnhancementMode)}>
                   <option value="photo">Photo · Real-ESRGAN</option>
-                  <option value="illustration">Illustration · Anime model</option>
+                  <option value="illustration">Illustration · ESRGAN Slim 4×</option>
                 </select>
                 <ChevronDown size={16} aria-hidden="true" />
               </div>
-              <span className="field-caption">{mode === 'photo' ? 'Natural detail recovery for photographs.' : 'Specialized detail recovery for illustrations; 4× only.'}</span>
+              <span className="field-caption">{mode === 'photo' ? 'AI detail recovery for photographs, processed on your device.' : 'General-purpose ESRGAN 4× enhancement for artwork and illustrations.'}</span>
 
               <span className="field-label scale-label">Upscale factor</span>
               <div className="scale-options" role="group" aria-label="Upscale factor">
