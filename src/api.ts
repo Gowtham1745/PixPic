@@ -14,7 +14,7 @@ export type EnhancementResult = {
 };
 
 type BrowserUpscaler = {
-  execute: (image: HTMLImageElement, options?: { output?: 'base64'; awaitNextFrame?: boolean; patchSize?: number; padding?: number }) => Promise<string>;
+  upscale: (image: HTMLImageElement, options?: { output?: 'base64'; patchSize?: number; padding?: number }) => Promise<string>;
   dispose?: () => void;
 };
 
@@ -99,7 +99,7 @@ async function enhanceInBrowser(file: File, scale: number): Promise<EnhancementR
   const [upscaler, image] = await Promise.all([getBrowserUpscaler(scale), fileToImage(file)]);
   let output: string;
   try {
-    output = await upscaler.execute(image, { output: 'base64', awaitNextFrame: true, patchSize: 64, padding: 2 });
+    output = await upscaler.upscale(image, { output: 'base64', patchSize: 64, padding: 2 });
   } catch (error) {
     const detail = error instanceof Error ? error.message : 'Unknown model error';
     throw new Error(`Browser AI enhancement failed: ${detail}. Try a smaller image or use 2×.`);
