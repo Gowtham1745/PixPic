@@ -69,16 +69,16 @@ async function getBrowserUpscaler(scale: number): Promise<BrowserUpscaler> {
 
   // All inference runs on the visitor's device. No image API or paid inference service is used.
   await loadScriptFromAny([
-    'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js',
-    'https://unpkg.com/@tensorflow/tfjs@4.22.0/dist/tf.min.js',
+    'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js',
+    'https://unpkg.com/@tensorflow/tfjs@latest/dist/tf.min.js',
   ]);
   await loadScriptFromAny([
-    `https://cdn.jsdelivr.net/npm/@upscalerjs/esrgan-slim@1.0.0/dist/umd/${scale}x.min.js`,
-    `https://unpkg.com/@upscalerjs/esrgan-slim@1.0.0/dist/umd/${scale}x.min.js`,
+    `https://cdn.jsdelivr.net/npm/@upscalerjs/esrgan-slim@latest/dist/umd/${scale}x.min.js`,
+    `https://unpkg.com/@upscalerjs/esrgan-slim@latest/dist/umd/${scale}x.min.js`,
   ]);
   await loadScriptFromAny([
-    'https://cdn.jsdelivr.net/npm/upscaler@1.0.0/dist/browser/umd/upscaler.min.js',
-    'https://unpkg.com/upscaler@1.0.0/dist/browser/umd/upscaler.min.js',
+    'https://cdn.jsdelivr.net/npm/upscaler@latest/dist/browser/umd/upscaler.min.js',
+    'https://unpkg.com/upscaler@latest/dist/browser/umd/upscaler.min.js',
   ]);
 
   const model = scale === 2 ? window.ESRGANSlim2x : window.ESRGANSlim4x;
