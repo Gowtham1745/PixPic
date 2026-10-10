@@ -309,7 +309,7 @@ function App() {
               <div className="select-wrap">
                 <select id="mode-select" value={mode} onChange={(event) => setEnhancementMode(event.target.value as EnhancementMode)}>
                   <option value="photo">Photo · Real-ESRGAN</option>
-                  <option value="illustration">Illustration · ESRGAN Slim 4×</option>
+                  <option value="illustration">Illustration · ESRGAN Medium 4×</option>
                 </select>
                 <ChevronDown size={16} aria-hidden="true" />
               </div>
