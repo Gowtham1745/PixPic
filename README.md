@@ -1,13 +1,13 @@
 # PixPic
 
-PixPic is a React, TypeScript, and Vite image-upscaling interface backed by a FastAPI service. The backend uses the open-source Real-ESRGAN models for actual super-resolution. The frontend never substitutes ordinary resizing for model inference: when the API or requested model is unavailable, it shows an error instead of claiming success.
+PixPic is a free image upscaler. By default, it runs open-source ESRGAN Slim super-resolution directly in the visitor's browser, so it needs no paid API or separate server. An optional FastAPI backend can be configured for server-side Real-ESRGAN models. PixPic never substitutes ordinary resizing for AI inference: if the browser model cannot load or run, it shows an error instead of claiming success.
 
 ## What works
 
-- Responsive upload and comparison interface, JPG/PNG validation, image preview, scale and model selection, error/retry states, and PNG download.
-- FastAPI health check and documented `/docs` endpoint.
-- Real-ESRGAN 2×/4× photo models and the 4× anime/illustration model when their dependencies and weights are installed.
-- GitHub Pages frontend deployment through Actions. Pages is static hosting; Python inference must run as a separately deployed API.
+- Responsive upload and comparison interface, JPG/PNG validation, image preview, scale selection, error/retry states, and PNG download.
+- Free browser-based ESRGAN Slim 2×/4× AI upscaling using TensorFlow.js and public CDN model files. Images are processed locally in the browser and are not uploaded to an inference server.
+- Optional FastAPI health check and documented `/docs` endpoint, with Real-ESRGAN 2×/4× photo and 4× anime models when dependencies and weights are installed.
+- GitHub Pages frontend deployment through Actions. No separate backend hosting is required for browser mode.
 
 ## Frontend setup
 
@@ -20,11 +20,11 @@ npm ci
 npm run dev
 ```
 
-Open the Vite URL printed in the terminal, normally `http://localhost:5173`. For a frontend-only preview, image selection and validation work, but Enhance reports that the AI service is unavailable until the backend is running.
+Open the Vite URL printed in the terminal, normally `http://localhost:5173`. With `VITE_API_BASE_URL` blank (the default), Enhance uses free in-browser ESRGAN Slim inference. The first enhancement downloads TensorFlow.js and the selected model from jsDelivr, so it requires an internet connection; subsequent use in the same page reuses the loaded model. Large images can be slow and depend on available device memory. Images remain in the browser during this mode.
 
 Optional `.env` settings:
 
-- `VITE_API_BASE_URL`: deployed FastAPI origin, for example `https://pixpic-api.example.com`; leave blank for the local Vite proxy.
+- `VITE_API_BASE_URL`: optional deployed FastAPI origin, for example `https://pixpic-api.example.com`; leave blank to use free browser-based AI inference.
 - `VITE_BASE_PATH`: local default `/`; the Pages workflow supplies `/<actual-repository-name>/` at build time.
 - `VITE_GITHUB_REPOSITORY_URL`: optional public repository URL for the footer. The workflow derives it from GitHub Actions.
 
@@ -78,7 +78,7 @@ These tests cover safe image decoding, MIME validation, output limits, and API i
 
 1. Push the project to a GitHub repository whose default branch is `main` (or update `.github/workflows/deploy-pages.yml` to match).
 2. In **Settings → Pages**, set the build and deployment source to **GitHub Actions**.
-3. Optionally add the repository Actions variable `VITE_API_BASE_URL` containing the public HTTPS origin of a separately deployed FastAPI backend. Add that frontend origin to the backend's `CORS_ORIGINS`.
+3. Leave the repository Actions variable `VITE_API_BASE_URL` unset to use free browser-based inference. If you later configure a FastAPI backend, set the variable to its public HTTPS origin and add the frontend origin to its `CORS_ORIGINS`.
 4. Push to `main` or manually run **Deploy PixPic to GitHub Pages** from the Actions tab. The workflow builds with the actual repository name as Vite's base path.
 
 The public URL is normally `https://<owner>.github.io/<repository>/` for a project site. This repository has no Git remote configured yet, so deployment cannot be run or verified from this workspace. Do not use GitHub Pages for the Python API.
