@@ -21,8 +21,8 @@ type BrowserUpscaler = {
 declare global {
   interface Window {
     Upscaler?: new (options?: { model?: unknown }) => BrowserUpscaler;
-    ESRGANSlim2x?: unknown;
-    ESRGANSlim4x?: unknown;
+    ESRGANMedium2x?: unknown;
+    ESRGANMedium4x?: unknown;
   }
 }
 
@@ -73,15 +73,15 @@ async function getBrowserUpscaler(scale: number): Promise<BrowserUpscaler> {
     'https://unpkg.com/@tensorflow/tfjs@latest/dist/tf.min.js',
   ]);
   await loadScriptFromAny([
-    `https://cdn.jsdelivr.net/npm/@upscalerjs/esrgan-slim@latest/dist/umd/${scale}x.min.js`,
-    `https://unpkg.com/@upscalerjs/esrgan-slim@latest/dist/umd/${scale}x.min.js`,
+    `https://cdn.jsdelivr.net/npm/@upscalerjs/esrgan-medium@latest/dist/umd/${scale}x.min.js`,
+    `https://unpkg.com/@upscalerjs/esrgan-medium@latest/dist/umd/${scale}x.min.js`,
   ]);
   await loadScriptFromAny([
     'https://cdn.jsdelivr.net/npm/upscaler@latest/dist/browser/umd/upscaler.min.js',
     'https://unpkg.com/upscaler@latest/dist/browser/umd/upscaler.min.js',
   ]);
 
-  const model = scale === 2 ? window.ESRGANSlim2x : window.ESRGANSlim4x;
+  const model = scale === 2 ? window.ESRGANMedium2x : window.ESRGANMedium4x;
   if (!window.Upscaler || !model) {
     throw new Error('The AI libraries loaded, but the ESRGAN model did not initialize. Refresh the page and try again.');
   }
@@ -118,78 +118,28 @@ function base64ToBlob(dataUrl: string): Blob {
   return new Blob([bytes], { type: mime });
 }
 
-function canvasToImage(canvas: HTMLCanvasElement): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error('Could not prepare an image tile for AI processing.'));
-    image.src = canvas.toDataURL('image/png');
-  });
-}
-
-function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (blob) resolve(blob);
-      else reject(new Error('Could not export the enhanced image.'));
-    }, 'image/png');
-  });
-}
-
 async function enhanceInBrowser(file: File, scale: number): Promise<EnhancementResult> {
   const [upscaler, image] = await Promise.all([getBrowserUpscaler(scale), fileToImage(file)]);
-  // Process bounded overlapping tiles instead of sending a huge source image into one
-  // model call. This avoids TensorFlow/browser maximum-size errors on large photos.
-  const tileSize = 512;
-  const overlap = 16;
-  const outputCanvas = document.createElement('canvas');
-  outputCanvas.width = image.naturalWidth * scale;
-  outputCanvas.height = image.naturalHeight * scale;
-  const context = outputCanvas.getContext('2d');
-  if (!context) throw new Error('Your browser could not create the output canvas.');
-
+  let output: string;
   try {
-    for (let y = 0; y < image.naturalHeight; y += tileSize) {
-      for (let x = 0; x < image.naturalWidth; x += tileSize) {
-        const coreWidth = Math.min(tileSize, image.naturalWidth - x);
-        const coreHeight = Math.min(tileSize, image.naturalHeight - y);
-        const left = Math.max(0, x - overlap);
-        const top = Math.max(0, y - overlap);
-        const right = Math.min(image.naturalWidth, x + coreWidth + overlap);
-        const bottom = Math.min(image.naturalHeight, y + coreHeight + overlap);
-        const tileCanvas = document.createElement('canvas');
-        tileCanvas.width = right - left;
-        tileCanvas.height = bottom - top;
-        const tileContext = tileCanvas.getContext('2d');
-        if (!tileContext) throw new Error('Your browser could not prepare an image tile.');
-        tileContext.drawImage(image, left, top, tileCanvas.width, tileCanvas.height, 0, 0, tileCanvas.width, tileCanvas.height);
-        const tileImage = await canvasToImage(tileCanvas);
-        const output = await upscaler.upscale(tileImage, { output: 'base64', patchSize: 64, padding: 2 });
-        if (typeof output !== 'string') throw new Error('The AI model returned an unexpected result.');
-        const tileBlob = base64ToBlob(output);
-        const enhancedTile = await createImageBitmap(tileBlob);
-        const sourceX = (x - left) * scale;
-        const sourceY = (y - top) * scale;
-        context.drawImage(
-          enhancedTile,
-          sourceX, sourceY, coreWidth * scale, coreHeight * scale,
-          x * scale, y * scale, coreWidth * scale, coreHeight * scale,
-        );
-        enhancedTile.close();
-        tileImage.src = '';
-        tileCanvas.width = 0;
-        tileCanvas.height = 0;
-      }
-    }
-    const blob = await canvasToBlob(outputCanvas);
-    return { image: blob, width: outputCanvas.width, height: outputCanvas.height };
+    // Let UpscalerJS manage patching itself. The previous extra 512px tile loop
+    // nested a second patching pass and made each enhancement unnecessarily slow.
+    output = await upscaler.upscale(image, {
+      output: 'base64',
+      patchSize: 128,
+      padding: 4,
+    });
   } catch (error) {
     const detail = error instanceof Error ? error.message : 'Unknown model error';
     throw new Error(`Browser AI enhancement failed: ${detail}. Try 2× or a smaller image if your device runs out of memory.`);
-  } finally {
-    outputCanvas.width = 0;
-    outputCanvas.height = 0;
   }
+  if (typeof output !== 'string') throw new Error('The AI model returned an unexpected result.');
+  const blob = base64ToBlob(output);
+  const resultImage = await createImageBitmap(blob);
+  const width = resultImage.width;
+  const height = resultImage.height;
+  resultImage.close();
+  return { image: blob, width, height };
 }
 
 export async function getBackendHealth(): Promise<BackendHealth> {
@@ -200,7 +150,7 @@ export async function getBackendHealth(): Promise<BackendHealth> {
       models: {
         photo_2x: { ready: true },
         photo_4x: { ready: true },
-        illustration_4x: { ready: true, reason: 'Uses the general ESRGAN Slim 4× model in browser mode.' },
+        illustration_4x: { ready: true, reason: 'Uses the general ESRGAN Medium 4× model in browser mode.' },
       },
     };
   }
