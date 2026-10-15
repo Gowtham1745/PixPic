@@ -177,6 +177,10 @@ h1, h2, h3 { font-family: var(--display); letter-spacing: 0; }
 .processing-icon { width: 39px; height: 39px; flex: none; display: grid; place-items: center; border-radius: 50%; background: #e5f0e6; color: var(--green); }
 .processing-panel strong { font: 700 13px var(--display); }
 .processing-panel p { margin: 3px 0 0; color: #748077; font-size: 10px; }
+.processing-copy { min-width: 0; flex: 1; }
+.progress-track { display: block; width: min(100%, 360px); height: 5px; margin-top: 9px; overflow: hidden; border-radius: 99px; background: #e1e9e1; }
+.progress-track > span { display: block; height: 100%; border-radius: inherit; background: var(--green); transition: width .18s ease; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .processing-factor { margin-left: auto; color: #617a69; font-size: 10px; font-weight: 700; white-space: nowrap; }
 .spin { animation: spin 1.1s linear infinite; }
 .result-panel { margin-top: 25px; padding: 23px; border: 1px solid #e3e8e2; border-radius: 8px; background: #fff; box-shadow: 0 4px 15px #192c2010; animation: rise-in .35s both; }
