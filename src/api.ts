@@ -14,7 +14,7 @@ export type EnhancementResult = {
 };
 
 type BrowserUpscaler = {
-  upscale: (image: HTMLImageElement, options?: { output?: 'base64'; patchSize?: number; padding?: number }) => Promise<string>;
+  upscale: (image: HTMLImageElement, options?: { output?: 'base64'; patchSize?: number; padding?: number; progress?: (percent: number) => void }) => Promise<string>;
   dispose?: () => void;
 };
 
@@ -118,7 +118,7 @@ function base64ToBlob(dataUrl: string): Blob {
   return new Blob([bytes], { type: mime });
 }
 
-async function enhanceInBrowser(file: File, scale: number): Promise<EnhancementResult> {
+async function enhanceInBrowser(file: File, scale: number, onProgress?: (percent: number) => void): Promise<EnhancementResult> {
   const [upscaler, image] = await Promise.all([getBrowserUpscaler(scale), fileToImage(file)]);
   let output: string;
   try {
@@ -128,6 +128,7 @@ async function enhanceInBrowser(file: File, scale: number): Promise<EnhancementR
       output: 'base64',
       patchSize: 128,
       padding: 4,
+      progress: (percent) => onProgress?.(Math.max(0, Math.min(100, Math.round(percent * 100)))),
     });
   } catch (error) {
     const detail = error instanceof Error ? error.message : 'Unknown model error';
@@ -159,10 +160,10 @@ export async function getBackendHealth(): Promise<BackendHealth> {
   return (await response.json()) as BackendHealth;
 }
 
-export async function enhanceImage(file: File, scale: number, mode: 'photo' | 'illustration'): Promise<EnhancementResult> {
+export async function enhanceImage(file: File, scale: number, mode: 'photo' | 'illustration', onProgress?: (percent: number) => void): Promise<EnhancementResult> {
   if (!apiRoot) {
     if (mode === 'illustration' && scale !== 4) throw new Error('Illustration mode requires 4× enhancement.');
-    return enhanceInBrowser(file, scale);
+    return enhanceInBrowser(file, scale, onProgress);
   }
 
   const form = new FormData();
@@ -195,5 +196,6 @@ export async function enhanceImage(file: File, scale: number, mode: 'photo' | 'i
 
   const width = Number(response.headers.get('X-Output-Width')) || null;
   const height = Number(response.headers.get('X-Output-Height')) || null;
+  onProgress?.(100);
   return { image, width, height };
 }
