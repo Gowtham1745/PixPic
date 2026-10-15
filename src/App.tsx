@@ -91,6 +91,7 @@ function App() {
   const [comparison, setComparison] = useState(50);
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -161,10 +162,11 @@ function App() {
   async function runEnhancement() {
     if (!selected || processing || sizeError) return;
     setProcessing(true);
+    setProgress(0);
     setError(null);
     setProcessed(null);
     try {
-      const output = await enhanceImage(selected.file, scale, mode);
+      const output = await enhanceImage(selected.file, scale, mode, setProgress);
       const url = URL.createObjectURL(output.image);
       setProcessed({ url, width: output.width, height: output.height });
       setComparison(50);
@@ -374,9 +376,9 @@ function App() {
           )}
 
           {processing && (
-            <div className="processing-panel" role="status" aria-live="polite">
+            <div className="processing-panel" role="status" aria-live="polite" aria-label={`Image enhancement progress: ${progress}%`}><span className="sr-only">{progress}% complete</span>
               <div className="processing-icon"><LoaderCircle className="spin" size={22} /></div>
-              <div><strong>Finding the details.</strong><p>Real-ESRGAN is working on your image. Larger images can take a little longer.</p></div>
+              <div className="processing-copy"><strong>{progress >= 100 ? 'Finishing your image…' : progress > 0 ? `Enhancing image · ${progress}%` : 'Loading the AI model…'}</strong><p>{progress > 0 ? 'AI processing progress for this image. Your first run may take longer while the model initializes.' : 'The first run downloads and initializes the model. Later images in this tab can reuse it.'}<span className="progress-track" aria-hidden="true"><span style={{ width: `${progress}%` }} /></span></p></div>
               <span className="processing-factor">{scale}× · {mode === 'photo' ? 'Photo' : 'Illustration'}</span>
             </div>
           )}
