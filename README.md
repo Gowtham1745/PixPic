@@ -1,11 +1,11 @@
 # PixPic
 
-PixPic is a free image upscaler. By default, it runs open-source ESRGAN Slim super-resolution directly in the visitor's browser, so it needs no paid API or separate server. An optional FastAPI backend can be configured for server-side Real-ESRGAN models. PixPic never substitutes ordinary resizing for AI inference: if the browser model cannot load or run, it shows an error instead of claiming success.
+PixPic is a free image upscaler. By default, it runs open-source ESRGAN Medium super-resolution directly in the visitor's browser, so it needs no paid API or separate server. An optional FastAPI backend can be configured for server-side Real-ESRGAN models. PixPic never substitutes ordinary resizing for AI inference: if the browser model cannot load or run, it shows an error instead of claiming success.
 
 ## What works
 
 - Responsive upload and comparison interface, JPG/PNG validation, image preview, scale selection, error/retry states, and PNG download.
-- Free browser-based ESRGAN Slim 2×/4× AI upscaling using TensorFlow.js and public CDN model files. Images are processed locally in the browser and are not uploaded to an inference server.
+- Free browser-based ESRGAN Medium 2×/4× AI upscaling using TensorFlow.js and public CDN model files. Images are processed locally in the browser and are not uploaded to an inference server.
 - Optional FastAPI health check and documented `/docs` endpoint, with Real-ESRGAN 2×/4× photo and 4× anime models when dependencies and weights are installed.
 - GitHub Pages frontend deployment through Actions. No separate backend hosting is required for browser mode.
 
@@ -20,7 +20,7 @@ npm ci
 npm run dev
 ```
 
-Open the Vite URL printed in the terminal, normally `http://localhost:5173`. With `VITE_API_BASE_URL` blank (the default), Enhance uses free in-browser ESRGAN Slim inference. The first enhancement downloads TensorFlow.js and the selected model from jsDelivr, so it requires an internet connection; subsequent use in the same page reuses the loaded model. Large images can be slow and depend on available device memory. Images remain in the browser during this mode.
+Open the Vite URL printed in the terminal, normally `http://localhost:5173`. With `VITE_API_BASE_URL` blank (the default), Enhance uses free in-browser ESRGAN Medium inference. The first enhancement downloads TensorFlow.js and the selected model from jsDelivr, so it requires an internet connection; subsequent use in the same page reuses the loaded model. Large images can be slow and depend on available device memory. The enhancement panel reports inference progress after the model initializes. Images remain in the browser during this mode.
 
 Optional `.env` settings:
 
